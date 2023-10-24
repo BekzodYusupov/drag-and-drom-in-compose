@@ -1,23 +1,16 @@
 package com.example.droganddrop
 
 import android.annotation.SuppressLint
-import android.content.ClipData.Item
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -31,25 +24,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerInputChange
-import androidx.compose.ui.input.pointer.PointerType
-import androidx.compose.ui.input.pointer.consumeAllChanges
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.droganddrop.app.BottomList
 import com.example.droganddrop.app.DragTarget
 import com.example.droganddrop.app.DragTargetInfo
-import com.example.droganddrop.app.DragTargetView
-import com.example.droganddrop.app.DropTarget
 import com.example.droganddrop.app.FoodItem
 import com.example.droganddrop.app.LocalDragTargetInfo
-import com.example.droganddrop.app.Person
-import com.example.droganddrop.app.foodList
 import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
@@ -58,59 +43,42 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            val dropTargets =
-                remember { mutableStateListOf<FoodItem>(FoodItem(1, "Axe", 20.0, R.drawable.img)) }
-            val dragTargets = remember { mutableStateListOf<FoodItem>() }
+            val dragInfo = LocalDragTargetInfo.current
+            val bottomListItems =
+                remember { mutableStateListOf(
+                    FoodItem(1, "Axe", 20.0, R.drawable.img))
+                }
+            val topListItems =
+                remember { mutableStateListOf(
+                    FoodItem(1, "Pizza", 20.0, R.drawable.food_pizza),
+                    FoodItem(2, "French toast", 10.05, R.drawable.food_toast),
+                    FoodItem(3, "Chocolate cake", 12.99, R.drawable.food_cake))
+                }
+
             val state = remember { DragTargetInfo() }
-
-//            val dragInfo = LocalDragTargetInfo.current
-//            val dragPosition = dragInfo.dragPosition
-//            val dragOffset = dragInfo.dragOffset
-//            var isInBound by remember { mutableStateOf(false) }
-
 
             CompositionLocalProvider(
                 LocalDragTargetInfo provides state
             ) {
                 Box(modifier = Modifier.fillMaxSize())
                 {
-                    //////
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(horizontal = 10.dp)
-                    ) {
-                        items(items = foodList) { food ->
-                            DragTarget(modifier = Modifier, foodItem = food)
+                    BottomList(foodItems = topListItems, modifier = Modifier.align(Alignment.TopCenter)){
+                        if (!topListItems.contains(it)){
+                            topListItems.add(it)
+                            bottomListItems.remove(it)
                         }
                     }
-//
-//                    val bgColor = if (isInBound) Color.Red else Color.Green
-//                    if (isInBound && !dragInfo.isDragging) dropTargets.add(dragInfo.dataToDrop!!)
-
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.BottomCenter)
-                            .padding(16.dp)
-//                            .background(color = bgColor, shape = RoundedCornerShape(12.dp))
-                            /*.onGloballyPositioned {
-                                Log.d("qqqq", "onGloballyPositioned")
-                                it.boundsInWindow().let { rect ->
-                                        isInBound = rect.contains(dragPosition + dragOffset)
-                                        Log.d("qqqq", "isInBound - $isInBound")
-                                    }
-                            }*/,
-                        contentPadding = PaddingValues(horizontal = 10.dp)
+                    BottomList(
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                        foodItems = bottomListItems
                     ) {
-//                        items(dropTargets) {
-//                            DragTargetView(it)
-////
-//                        }
-
-                        item{ DropTarget(person = Person(1, "Axe", R.drawable.img)) }
+                        if (!bottomListItems.contains(it)) {
+                            dragInfo.draggableComposable = null
+                            bottomListItems.add(it)
+                            topListItems.remove(it)
+                        }
                     }
                 }
-                //////////
                 if (state.isDragging) {
                     var targetSize by remember { mutableStateOf(IntSize.Zero) }
                     Box(modifier = Modifier
@@ -128,26 +96,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-
-
-        /*  DraggableScreen(
-              modifier = Modifier
-                  .fillMaxSize()
-                  .background(Color.Black.copy(0.8f))
-          ) {
-              MainScreen(viewModel = viewModel)
-          }*/
-        /*  Scaffold(topBar = {
-              Text(text = "Multi", color = Color.Black)
-          }, content = {
-              Column(
-                  modifier = Modifier.fillMaxSize(),
-                  verticalArrangement = Arrangement.Center,
-                  horizontalAlignment = Alignment.CenterHorizontally
-              ) {
-                  Multi(bgColor = Color.Green, letter = "A")
-              }
-          })*/
     }
 }
 

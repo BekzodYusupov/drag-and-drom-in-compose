@@ -1,5 +1,7 @@
 package com.example.droganddrop.app
 
+import android.util.Log
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -7,14 +9,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
@@ -39,16 +45,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 internal val LocalDragTargetInfo = compositionLocalOf { DragTargetInfo() }
+data class FoodItem(val id: Int, val name: String, val price: Double, @DrawableRes val image: Int)
 
 @Composable
 fun DragTarget(
-    modifier: Modifier = Modifier,
     foodItem: FoodItem,
 ) {
     var currentPosition by remember { mutableStateOf(Offset.Zero) }
     val currentState = LocalDragTargetInfo.current
 
-    Box(modifier = modifier
+    Box(modifier = Modifier
         .onGloballyPositioned {
             currentPosition = it.localToWindow(Offset.Zero)
         }
@@ -58,8 +64,10 @@ fun DragTarget(
                     currentState.dataToDrop = foodItem
                     currentState.isDragging = true
                     currentState.dragPosition = currentPosition + it
-                    currentState.draggableComposable = {DragTargetView(foodItem)}
+                    currentState.draggableComposable = { DragTargetView(foodItem) }
                 }, onDrag = { change, dragAmount ->
+                    Log.d("qqqq", "drag")
+
                     change.consume()
                     currentState.dragOffset += Offset(dragAmount.x, dragAmount.y)
                 }, onDragEnd = {
@@ -73,6 +81,49 @@ fun DragTarget(
         DragTargetView(foodItem)
     }
 }
+
+
+@Composable
+fun BottomList(
+    modifier: Modifier = Modifier,
+    foodItems: List<FoodItem>,
+    addItem: (FoodItem) -> Unit
+) {
+    val dragInfo = LocalDragTargetInfo.current
+    val dragPosition = dragInfo.dragPosition
+    val dragOffset = dragInfo.dragOffset
+    var isInBound by remember { mutableStateOf(false) }
+    Log.d("bdbd","isInBounds - $isInBound")
+    val bgColor = if (isInBound) Color.Red else Color.White
+    if (isInBound && !dragInfo.isDragging && dragInfo.dataToDrop != null) {
+        addItem(dragInfo.dataToDrop!!)
+        isInBound = false
+    }
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .background(color = bgColor, shape = RoundedCornerShape(12.dp))
+            .onGloballyPositioned {
+                Log.d("tttt", "onGloballyPositioned")
+                it
+                    .boundsInWindow()
+                    .let { rect ->
+                        if (!foodItems.contains(dragInfo.dataToDrop)){
+                            isInBound = rect.contains(dragPosition + dragOffset)
+                            Log.d("tttt", "isInBound - $isInBound")
+                        }
+                    }
+            },
+        contentPadding = PaddingValues(horizontal = 10.dp)
+    ) {
+        items(foodItems) {
+            DragTarget(it)
+        }
+    }
+}
+
 
 @Composable
 fun DragTargetView(foodItem: FoodItem) {
@@ -90,7 +141,7 @@ fun DragTargetView(foodItem: FoodItem) {
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 modifier = Modifier
-                    .size(130.dp)
+                    .size(60.dp)
                     .clip(RoundedCornerShape(16.dp))
             )
 
@@ -107,83 +158,6 @@ fun DragTargetView(foodItem: FoodItem) {
                     fontSize = 18.sp,
                     color = Color.Black,
                     fontWeight = FontWeight.ExtraBold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun DropTarget(person: Person) {
-    val foodItems = remember { mutableStateMapOf<Int, FoodItem>() }
-
-    val dragInfo = LocalDragTargetInfo.current
-    val dragPosition = dragInfo.dragPosition
-    val dragOffset = dragInfo.dragOffset
-    var isInBound by remember { mutableStateOf(false) }
-
-    Box(modifier = Modifier
-        .padding(6.dp)
-        .fillMaxHeight(0.8f)
-        .onGloballyPositioned {
-            it
-                .boundsInWindow()
-                .let { rect ->
-                    isInBound = rect.contains(dragPosition + dragOffset)
-                }
-        }) {
-        val foodItem = if (isInBound && !dragInfo.isDragging) dragInfo.dataToDrop else null
-        val bgColor = if (isInBound) {
-            Color.Red
-        } else {
-            Color.White
-        }
-
-        foodItem?.let {
-            if (isInBound) foodItems[foodItem.id] = foodItem
-        }
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .shadow(elevation = 4.dp, shape = RoundedCornerShape(16.dp))
-                .background(
-                    bgColor,
-                    RoundedCornerShape(16.dp)
-                ),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-            Image(
-                painter = painterResource(id = person.profile), contentDescription = null,
-                modifier = Modifier
-                    .size(70.dp)
-                    .clip(CircleShape),
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = person.name,
-                fontSize = 18.sp,
-                color = Color.Black,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            if (foodItems.isNotEmpty()) {
-                Text(
-                    text = "$${foodItems.values.sumOf { it.price }}",
-                    fontSize = 16.sp,
-                    color = Color.Black,
-                    fontWeight = FontWeight.ExtraBold
-                )
-                Text(
-                    text = "${foodItems.size} Items",
-                    fontSize = 14.sp,
-                    color = Color.Black
                 )
             }
         }
