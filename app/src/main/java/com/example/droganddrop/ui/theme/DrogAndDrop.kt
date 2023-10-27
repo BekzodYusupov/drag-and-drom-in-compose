@@ -1,6 +1,5 @@
 package com.example.droganddrop.ui.theme
 
-import androidx.compose.foundation.gestures.DraggableState
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -69,7 +68,7 @@ fun <T> DragTarget(
 @Composable
 fun <T> Dropitem(
     modifier: Modifier,
-    content: @Composable() (BoxScope.(isInBound: Boolean, data: T?) -> Unit)
+    content: @Composable (BoxScope.(isInBound: Boolean, data: T?) -> Unit)
 ) {
     val dragInfo = LocalDragTargetInfo.current
     val dragPosition = dragInfo.dragPosition
